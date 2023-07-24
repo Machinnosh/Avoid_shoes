@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dodge the Shoe</title>
+    <style>
+        body { background: #eee; }
+        #gameCanvas { background: #fff; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        var canvas = document.getElementById('gameCanvas');
+        var ctx = canvas.getContext('2d');
+
+        var player = { x: 50, y: 300, width: 60, height: 100, img: new Image() };
+        player.img.src = 'playerImage.png';  // Replace 'playerImage.png' with the path to your image file
+
+        var woman = { x: 760, y: 550, width: 60, height: 100, img: new Image() };  // Moved to bottom-right
+        woman.img.src = 'womanImage.png';  // Replace 'womanImage.png' with the path to your image file
+
+        var shoes = [];
+        var shoeImage = new Image();
+        shoeImage.src = 'shoeImage.png';  // Replace 'shoeImage.png' with the path to your image file
+
+        var background = new Image();  // Added background image
+        background.src = 'background.png';  // Replace 'background.png' with the path to your image file
+
+        var generationRate = 0.1;  // Initial shoe generation rate
+
+        var lives = 3;  // Added lives counter
+
+        canvas.addEventListener('mousemove', function(e) {
+            player.y = Math.min(Math.max(e.clientY, 0), canvas.height - player.height);  // Keep the player within the screen vertically
+            player.x = Math.min(Math.max(e.clientX, 0), canvas.width - player.width);  // Keep the player within the screen horizontally
+        });
+
+        setInterval(function() {
+            ctx.clearRect(0, 0, 800, 600);
+            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);  // Draw background
+
+            ctx.drawImage(player.img, player.x, player.y, player.width, player.height);  // Draw player
+            ctx.drawImage(woman.img, woman.x, woman.y, woman.width, woman.height);  // Draw woman
+
+            if (Math.random() < generationRate) {  // Randomly generate shoes in a radial pattern
+                var angle = Math.random() * 2 * Math.PI;  // Changed to 2*PI for full circle
+                var speed = 5;  // Increased speed so most shoes reach the left side
+                var numberOfShoes = Math.floor(generationRate * 10);  // Generate more shoes exponentially
+                for (var j = 0; j < numberOfShoes; j++) {
+                    shoes.push({ x: woman.x, y: woman.y, width: 40, height: 20, dx: -speed * Math.cos(angle), dy: speed * Math.sin(angle), img: shoeImage });  // Double size
+                }
+            }
+
+            for (var i = 0; i < shoes.length; i++) {
+                var shoe = shoes[i];
+                shoe.x += shoe.dx;
+                shoe.y += shoe.dy;
+                ctx.drawImage(shoe.img, shoe.x, shoe.y, shoe.width, shoe.height);  // Draw shoe
+
+                if (player.x < shoe.x + shoe.width &&
+                    player.x + player.width > shoe.x &&
+                    player.y < shoe.y + shoe.height &&
+                    player.y + player.height > shoe.y) {
+                    // Collision detected!
+                    lives--;
+                    if (lives <= 0) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(background, 0, 0, canvas.width, canvas.height);  // Draw background
+                        ctx.drawImage(player.img, player.x, player.y, player.width, player.height);  // Draw player
+                        ctx.font = '30px Arial';
+                        ctx.fillStyle = 'green';
+                        ctx.fillText('靴ははいて帰ったほうがいいと思います', canvas.width / 2 - 150, canvas.height / 2);
+                        return;
+                    }
+                    shoes.splice(i, 1);
+                    i--;
+                }
+            }
+
+            shoes = shoes.filter(shoe => shoe.x + shoe.width > 0 && shoe.y + shoe.height > 0 && shoe.y < canvas.height);  // Remove shoes that are out of the screen
+
+            generationRate *= 1.01;  // Increase the generation rate exponentially
+            if (generationRate > 1) generationRate = 1;  // Cap the generation rate at 1
+
+            // Draw lives counter
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'white';
+            ctx.fillText('Lives: ' + lives, canvas.width / 2 - 50, 50);
+        }, 20);
+    </script>
+</body>
+</html>
